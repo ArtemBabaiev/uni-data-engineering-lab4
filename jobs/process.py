@@ -1,6 +1,6 @@
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.window import Window
-from pyspark.sql.functions import to_date, avg, sum, count, month, col, dense_rank, max, expr
+from pyspark.sql.functions import to_date, avg, count, month, col, dense_rank, max, expr
 
 basepath = "/opt/bitnami/spark/jobs"
 
@@ -27,7 +27,8 @@ def avg_trip_duration(data_frame: DataFrame):
     data_frame = data_frame.withColumn("date", to_date("start_time", "yyyy-MM-dd"))
 
     result = (data_frame.groupby("date")
-              .agg(avg("tripduration").alias("avg_trip_duration")))
+              .agg(avg("tripduration").alias("avg_trip_duration"))
+              .sort("date"))
 
     write_file(result, "avg_trip_duration.csv")
 
@@ -37,7 +38,8 @@ def trips_each_day(data_frame: DataFrame):
     data_frame = data_frame.withColumn("date", to_date("start_time", "yyyy-MM-dd"))
     result = (data_frame
               .groupby("date")
-              .agg(count("*").alias("trips_each_day")))
+              .agg(count("*").alias("trips_each_day"))
+              .sort("date"))
 
     write_file(result, "trips_each_day.csv")
 
@@ -60,7 +62,7 @@ def most_popular_starting_station_for_each_month(data_frame: DataFrame):
 
 
 # Які станції входять у трійку лідерів станцій для поїздок кожного дня протягом останніх двох тижнів?
-def top_3_stations_for_daily_trips_over_past_two_weeks(data_frame: DataFrame):
+def top_3_stations_for_daily_trips_over_past_2_weeks(data_frame: DataFrame):
     data_frame = data_frame.withColumn("date", to_date("start_time", "yyyy-MM-dd"))
     latest_date = data_frame.select(max("date")).collect()[0][0]
 
@@ -78,7 +80,7 @@ def top_3_stations_for_daily_trips_over_past_two_weeks(data_frame: DataFrame):
               .drop("rank")
               .sort(["date", "trip_count"]))
 
-    write_file(result, "top_3_stations_for_daily_trips_over_past_two_weeks.csv")
+    write_file(result, "top_3_stations_for_daily_trips_over_past_2_weeks.csv")
 
 
 # Чоловіки чи жінки їздять довше в середньому?
@@ -99,7 +101,7 @@ df = spark.read.csv(f"{basepath}/Divvy_Trips_2019_Q4.csv", header=True, inferSch
 avg_trip_duration(df)
 trips_each_day(df)
 most_popular_starting_station_for_each_month(df)
-top_3_stations_for_daily_trips_over_past_two_weeks(df)
+top_3_stations_for_daily_trips_over_past_2_weeks(df)
 men_or_women_drive_longer_on_average(df)
 
 spark.stop()
